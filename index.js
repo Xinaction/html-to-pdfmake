@@ -184,7 +184,14 @@ module.exports = function(htmlText, wndw) {
             break;
           }
           case "img": {
-            ret = {image:element.getAttribute("src")};
+            var srcVal = element.getAttribute("src");
+            if (srcVal.startsWith('data:')) {
+              ret = {image:element.getAttribute("src")};
+            } else {
+              var data = imageURLtoBase64(srcVal);
+              console.log("data : ", data);
+              ret = {image:data}
+            }
             ret.style = ['html-img'];
             cssClass = element.getAttribute("class");
             if (cssClass) {
@@ -360,6 +367,37 @@ module.exports = function(htmlText, wndw) {
       return color;
     }
   }
+
+  var imageURLtoBase64 = function(url) {
+    console.log("url : ", url);
+    var promise = new Promise(function(resolve, reject) {
+        var img = new Image();
+        img.crossOrigin = 'Anonymous';
+        img.onerror = function () {
+          console.log("error");
+            reject({
+                msg: 'Cannot load image',
+            });
+        };
+        img.onload = function () {
+          console.log("onload");
+            var canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            var ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            var dataURL = canvas.toDataURL('image/jpeg');
+            var imageData = {
+                data: dataURL,
+                width: img.width,
+                height: img.height
+            };
+            resolve(imageData);
+        };
+        img.src = url;
+    });
+    return promise;
+  };
 
   return convertHtml(htmlText)
 }
